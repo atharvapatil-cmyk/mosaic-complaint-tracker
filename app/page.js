@@ -296,7 +296,7 @@ export default function Home() {
 
     const rows = getAllRows(reportBrand)
     return { ...aggregateComplaints(rows, dateRange.startDate, dateRange.endDate), dateRange }
-  }, [reportType, reprtBrand, selectedWeek, selectedMonth, getAllRows])
+  }, [reportType, reportBrand, selectedWeek, selectedMonth, getAllRows])
 
   // ── TOTAL SUMMARY ────────────────────────────────────────────────────────
   const totalSummary = (() => {
