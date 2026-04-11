@@ -46,7 +46,7 @@ const BUCKET_COLORS = {
   'Other': '#9ca3af'
 }
 
-// âââ MAIN APP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ─── MAIN APP ─────────────────────────────────────────────────────────────
 export default function Home() {
   const [accessToken, setAccessToken] = useState(null)
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -73,7 +73,7 @@ export default function Home() {
 
   const tokenClientRef = useRef(null)
 
-  // ââ OAUTH INIT âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── OAUTH INIT ─────────────────────────────────────────────────────────
   useEffect(() => {
     const init = () => {
       if (!window.google) return
@@ -83,9 +83,9 @@ export default function Home() {
         callback: async (resp) => {
           if (resp.access_token) {
             setAccessToken(resp.access_token)
-            showToast('â Connected to Google Sheets')
+            showToast('✅ Connected to Google Sheets')
           } else {
-            showToast('â Authentication failed')
+            showToast('❌ Authentication failed')
           }
         }
       })
@@ -127,17 +127,17 @@ export default function Home() {
 
   const handleConnect = () => {
     if (!GOOGLE_CLIENT_ID) {
-      showToast('â ï¸ Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local')
+      showToast('⚠️ Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local')
       return
     }
     tokenClientRef.current?.requestAccessToken()
   }
 
-  // ââ LOAD ALL DATA âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── LOAD ALL DATA ───────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     if (!accessToken) { showToast('Connect Google Sheets first'); return }
     setLoading(true)
-    setLoadingMsg('Loading sheet metadataâ¦')
+    setLoadingMsg('Loading sheet metadata…')
     setProgress(5)
 
     try {
@@ -149,7 +149,7 @@ export default function Home() {
       let done = 0
 
       for (const brand of BRANDS) {
-        setLoadingMsg(`Loading ${BRAND_FULL[brand]} dataâ¦`)
+        setLoadingMsg(`Loading ${BRAND_FULL[brand]} data…`)
         const raw = await readSheet(SHEET_NAMES[brand], accessToken)
         const parsed = parseComplaintRows(raw, brand)
         brands[brand] = parsed
@@ -157,7 +157,7 @@ export default function Home() {
         setProgress(10 + (done / total) * 60)
       }
 
-      setLoadingMsg('Loading Live Sales Dataâ¦')
+      setLoadingMsg('Loading Live Sales Data…')
       const rawSales = await readSheet(SHEET_NAMES.SALES, accessToken)
       const parsedSales = parseSalesRows(rawSales)
 
@@ -170,16 +170,16 @@ export default function Home() {
       setSalesData(enrichedSales)
 
       setProgress(80)
-      setLoadingMsg('Building sales lookupâ¦')
+      setLoadingMsg('Building sales lookup…')
       const lookup = buildSalesLookup(enrichedSales)
       setSalesLookup(lookup)
 
       setAllData(brands)
       setLastLoaded(new Date())
       setProgress(100)
-      showToast(`â Loaded ${Object.values(brands).reduce((s, b) => s + b.length, 0)} complaints + ${enrichedSales.length} sales rows`)
+      showToast(`✅ Loaded ${Object.values(brands).reduce((s, b) => s + b.length, 0)} complaints + ${enrichedSales.length} sales rows`)
     } catch (err) {
-      showToast(`â ${err.message}`)
+      showToast(`❌ ${err.message}`)
       console.error(err)
     } finally {
       setLoading(false)
@@ -188,7 +188,7 @@ export default function Home() {
     }
   }, [accessToken])
 
-  // ââ HYGIENE PASS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── HYGIENE PASS ────────────────────────────────────────────────────────
   const runHygiene = useCallback(async () => {
     if (!accessToken) return
     setLoading(true)
@@ -197,29 +197,29 @@ export default function Home() {
       const updatedData = {}
 
       for (const brand of BRANDS) {
-        setLoadingMsg(`Running hygiene on ${brand}â¦`)
+        setLoadingMsg(`Running hygiene on ${brand}…`)
         const processed = runHygienePass(allData[brand])
         updatedData[brand] = processed
 
         // Write colors to sheet
         const sheetId = sheetMeta[SHEET_NAMES[brand]]
         if (sheetId !== undefined) {
-          setLoadingMsg(`Writing hygiene colors to ${brand}â¦`)
+          setLoadingMsg(`Writing hygiene colors to ${brand}…`)
           await writeHygieneColors(SHEET_NAMES[brand], processed, sheetId, accessToken)
         }
       }
 
       setAllData(updatedData)
-      showToast('â Hygiene pass complete â colors written to sheet')
+      showToast('✅ Hygiene pass complete — colors written to sheet')
     } catch (err) {
-      showToast(`â ${err.message}`)
+      showToast(`❌ ${err.message}`)
     } finally {
       setLoading(false)
       setLoadingMsg('')
     }
   }, [accessToken, allData, sheetMeta])
 
-  // ââ BUCKETING PASS ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── BUCKETING PASS ──────────────────────────────────────────────────────
   const runBucketing = useCallback(async () => {
     if (!accessToken) return
     setLoading(true)
@@ -236,7 +236,7 @@ export default function Home() {
           continue
         }
 
-        setLoadingMsg(`Bucketing ${unprocessed.length} rows for ${brand}â¦`)
+        setLoadingMsg(`Bucketing ${unprocessed.length} rows for ${brand}…`)
 
         const processed = rows.map(row => {
           if (row.status === 'Processed') return row
@@ -260,29 +260,29 @@ export default function Home() {
         await ensureAnalysisHeaders(SHEET_NAMES[brand], accessToken)
 
         // Write to sheet
-        setLoadingMsg(`Writing analysis to ${brand} sheetâ¦`)
+        setLoadingMsg(`Writing analysis to ${brand} sheet…`)
         await writeAnalysisColumns(SHEET_NAMES[brand], processed, accessToken)
 
         updatedData[brand] = processed
       }
 
       setAllData(updatedData)
-      showToast('â VOC bucketing complete')
+      showToast('✅ VOC bucketing complete')
     } catch (err) {
-      showToast(`â ${err.message}`)
+      showToast(`❌ ${err.message}`)
     } finally {
       setLoading(false)
       setLoadingMsg('')
     }
   }, [accessToken, allData])
 
-  // ââ GET ALL ROWS (optionally filtered by brand) ââââââââââââââââââââââââââ
+  // ── GET ALL ROWS (optionally filtered by brand) ──────────────────────────
   const getAllRows = useCallback((brand = 'ALL') => {
     if (brand === 'ALL') return [...allData.MM, ...allData.BB, ...allData.LJ]
     return allData[brand] || []
   }, [allData])
 
-  // ââ GET REPORT DATA ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── GET REPORT DATA ──────────────────────────────────────────────────────
   const getReportData = useCallback(() => {
     let dateRange
 
@@ -298,7 +298,7 @@ export default function Home() {
     return { ...aggregateComplaints(rows, dateRange.startDate, dateRange.endDate), dateRange }
   }, [reportType, reportBrand, selectedWeek, selectedMonth, getAllRows])
 
-  // ââ TOTAL SUMMARY ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── TOTAL SUMMARY ────────────────────────────────────────────────────────
   const totalSummary = (() => {
     const all = [...allData.MM, ...allData.BB, ...allData.LJ]
     return {
@@ -309,7 +309,7 @@ export default function Home() {
     }
   })()
 
-  // ââ RENDER âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── RENDER ───────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
@@ -341,7 +341,7 @@ export default function Home() {
         {loading && (
           <div className="bg-blue-50 border-b border-blue-200 px-6 py-2 flex items-center gap-3 text-sm text-blue-800">
             <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-            {loadingMsg || 'Processingâ¦'}
+            {loadingMsg || 'Processing…'}
           </div>
         )}
 
@@ -418,14 +418,14 @@ export default function Home() {
   )
 }
 
-// ââ SIDEBAR ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SIDEBAR ──────────────────────────────────────────────────────────────
 function Sidebar({ activeTab, setActiveTab }) {
   const items = [
-    { id: 'dashboard', icon: 'ð', label: 'Dashboard' },
-    { id: 'hygiene', icon: 'ð§¹', label: 'Data Hygiene' },
-    { id: 'bucketing', icon: 'ð§ ', label: 'VOC Bucketing' },
-    { id: 'reports', icon: 'ð', label: 'Reports' },
-    { id: 'ppm', icon: 'ð', label: 'PPM Analysis' },
+    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
+    { id: 'hygiene', icon: '🧹', label: 'Data Hygiene' },
+    { id: 'bucketing', icon: '🧠', label: 'VOC Bucketing' },
+    { id: 'reports', icon: '📋', label: 'Reports' },
+    { id: 'ppm', icon: '📈', label: 'PPM Analysis' },
   ]
 
   return (
@@ -461,7 +461,7 @@ function Sidebar({ activeTab, setActiveTab }) {
         {[['MM', '#1a56db', 'Man Matters'], ['BB', '#e11d48', 'Be Bodywise'], ['LJ', '#059669', 'Little Joys']].map(([code, color, name]) => (
           <div key={code} className="flex items-center gap-2 mb-1.5">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-            <span className="text-xs text-gray-600">{code} â {name}</span>
+            <span className="text-xs text-gray-600">{code} — {name}</span>
           </div>
         ))}
       </div>
@@ -469,7 +469,7 @@ function Sidebar({ activeTab, setActiveTab }) {
   )
 }
 
-// ââ TOP HEADER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── TOP HEADER ────────────────────────────────────────────────────────────
 function TopHeader({ accessToken, onConnect, onLoadData, loading, lastLoaded, totalRows }) {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
@@ -477,7 +477,7 @@ function TopHeader({ accessToken, onConnect, onLoadData, loading, lastLoaded, to
         <h1 className="text-lg font-bold text-gray-900">Complaint Analytics Tool</h1>
         {lastLoaded && (
           <p className="text-xs text-gray-400">
-            Last loaded: {lastLoaded.toLocaleTimeString()} â¢ {totalRows} complaints
+            Last loaded: {lastLoaded.toLocaleTimeString()} • {totalRows} complaints
           </p>
         )}
       </div>
@@ -498,14 +498,14 @@ function TopHeader({ accessToken, onConnect, onLoadData, loading, lastLoaded, to
         ) : (
           <>
             <span className="text-xs text-green-600 bg-green-50 px-3 py-1.5 rounded-full font-medium">
-              â Connected
+              ✅ Connected
             </span>
             <button
               onClick={onLoadData}
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {loading ? 'Loadingâ¦' : 'â» Load Data'}
+              {loading ? 'Loading…' : '↻ Load Data'}
             </button>
           </>
         )}
@@ -514,7 +514,7 @@ function TopHeader({ accessToken, onConnect, onLoadData, loading, lastLoaded, to
   )
 }
 
-// ââ DASHBOARD VIEW ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DASHBOARD VIEW ────────────────────────────────────────────────────────
 function DashboardView({ allData, totalSummary, lastLoaded, accessToken, onConnect, onLoad, loading }) {
   const summary = getHygieneSummary([...allData.MM, ...allData.BB, ...allData.LJ].filter(r => r.hygieneStatus))
   const processedCount = [...allData.MM, ...allData.BB, ...allData.LJ].filter(r => r.status === 'Processed').length
@@ -523,7 +523,7 @@ function DashboardView({ allData, totalSummary, lastLoaded, accessToken, onConne
   if (!accessToken) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center py-20">
-        <div className="text-6xl mb-6">ð</div>
+        <div className="text-6xl mb-6">🔗</div>
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Connect Your Google Sheet</h2>
         <p className="text-gray-500 max-w-md mb-6">
           Connect the QA Code V2 Google Sheet to start analysing complaints across Man Matters, Be Bodywise, and Little Joys.
@@ -535,7 +535,7 @@ function DashboardView({ allData, totalSummary, lastLoaded, accessToken, onConne
           Connect with Google
         </button>
         <div className="mt-10 bg-amber-50 border border-amber-200 rounded-xl p-5 max-w-lg text-left">
-          <div className="font-semibold text-amber-800 mb-2">âï¸ Setup Required</div>
+          <div className="font-semibold text-amber-800 mb-2">⚙️ Setup Required</div>
           <div className="text-sm text-amber-700 space-y-1">
             <p>1. Create a <code className="bg-amber-100 px-1 rounded">.env.local</code> file in the project root</p>
             <p>2. Add: <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_client_id</code></p>
@@ -550,12 +550,12 @@ function DashboardView({ allData, totalSummary, lastLoaded, accessToken, onConne
   if (totalCount === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center py-20">
-        <div className="text-6xl mb-6">ð</div>
+        <div className="text-6xl mb-6">📂</div>
         <h2 className="text-2xl font-bold text-gray-900 mb-3">No Data Loaded</h2>
         <p className="text-gray-500 mb-6">Click "Load Data" to fetch complaints from your Google Sheet.</p>
         <button onClick={onLoad} disabled={loading}
           className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50">
-          {loading ? 'Loadingâ¦' : 'â» Load Data'}
+          {loading ? 'Loading…' : '↻ Load Data'}
         </button>
       </div>
     )
@@ -599,10 +599,10 @@ function DashboardView({ allData, totalSummary, lastLoaded, accessToken, onConne
         </div>
         <div className="grid grid-cols-4 gap-4 mt-6">
           {[
-            { label: 'Accepted', value: summary.clean, color: 'bg-white/20', icon: 'â' },
-            { label: 'Red (No Evidence)', value: summary.red, color: 'bg-red-400/30', icon: 'ð´' },
-            { label: 'Yellow (Duplicate)', value: summary.yellow, color: 'bg-yellow-400/30', icon: 'ð¡' },
-            { label: 'Processed', value: processedCount, color: 'bg-green-400/30', icon: 'âï¸' },
+            { label: 'Accepted', value: summary.clean, color: 'bg-white/20', icon: '✅' },
+            { label: 'Red (No Evidence)', value: summary.red, color: 'bg-red-400/30', icon: '🔴' },
+            { label: 'Yellow (Duplicate)', value: summary.yellow, color: 'bg-yellow-400/30', icon: '🟡' },
+            { label: 'Processed', value: processedCount, color: 'bg-green-400/30', icon: '⚙️' },
           ].map(s => (
             <div key={s.label} className={`${s.color} rounded-xl p-3 backdrop-blur-sm`}>
               <div className="text-2xl font-bold text-white">{s.value}</div>
@@ -667,7 +667,7 @@ function DashboardView({ allData, totalSummary, lastLoaded, accessToken, onConne
             <h3 className="font-bold text-gray-900 mb-4">Brand Comparison</h3>
             <DonutChart
               data={BRANDS.map(b => allData[b].filter(r => r.acceptReject === 'Accept').length)}
-              labels={BRANDS.map(b => `${b} â ${BRAND_FULL[b]}`)}
+              labels={BRANDS.map(b => `${b} — ${BRAND_FULL[b]}`)}
               colors={BRANDS.map(b => BRAND_COLORS[b])}
             />
           </div>
@@ -686,7 +686,7 @@ function StatRow({ label, value, color }) {
   )
 }
 
-// ââ HYGIENE VIEW ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── HYGIENE VIEW ──────────────────────────────────────────────────────────
 function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
   const [filterBrand, setFilterBrand] = useState('ALL')
   const [filterStatus, setFilterStatus] = useState('ALL')
@@ -707,7 +707,7 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">ð§¹ Data Hygiene</h2>
+          <h2 className="text-xl font-bold text-gray-900">🧹 Data Hygiene</h2>
           <p className="text-sm text-gray-500 mt-1">Identifies invalid (red) and duplicate (yellow) complaints</p>
         </div>
         <button
@@ -715,7 +715,7 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
           disabled={loading || !accessToken || rows.length === 0}
           className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? 'â³ Runningâ¦' : 'â¶ Run Hygiene Pass'}
+          {loading ? '⏳ Running…' : '▶ Run Hygiene Pass'}
         </button>
       </div>
 
@@ -723,9 +723,9 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: 'Total Rows', value: summary.total, color: 'bg-gray-50', text: 'text-gray-800', border: 'border-gray-200' },
-          { label: 'â Clean', value: summary.clean, color: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-          { label: 'ð´ Red (Invalid)', value: summary.red, color: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-          { label: 'ð¡ Yellow (Duplicate)', value: summary.yellow, color: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
+          { label: '✅ Clean', value: summary.clean, color: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+          { label: '🔴 Red (Invalid)', value: summary.red, color: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+          { label: '🟡 Yellow (Duplicate)', value: summary.yellow, color: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
         ].map(s => (
           <div key={s.label} className={`${s.color} border ${s.border} rounded-xl p-4`}>
             <div className={`text-3xl font-bold ${s.text}`}>{s.value}</div>
@@ -744,14 +744,14 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
         <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
           <option value="ALL">All Brands</option>
-          {BRANDS.map(b => <option key={b} value={b}>{b} â {BRAND_FULL[b]}</option>)}
+          {BRANDS.map(b => <option key={b} value={b}>{b} — {BRAND_FULL[b]}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
           <option value="ALL">All Status</option>
-          <option value="clean">â Clean</option>
-          <option value="red">ð´ Red</option>
-          <option value="yellow">ð¡ Yellow</option>
+          <option value="clean">✅ Clean</option>
+          <option value="red">🔴 Red</option>
+          <option value="yellow">🟡 Yellow</option>
         </select>
         <span className="text-sm text-gray-500 self-center">{filtered.length} rows shown</span>
       </div>
@@ -766,7 +766,7 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
           </div>
           <div className="flex items-start gap-2">
             <div className="w-4 h-4 rounded bg-yellow-200 flex-shrink-0 mt-0.5" />
-            <div><strong>Yellow:</strong> Duplicate Order ID â same order logged more than once in the same sheet. Only the first entry is valid.</div>
+            <div><strong>Yellow:</strong> Duplicate Order ID — same order logged more than once in the same sheet. Only the first entry is valid.</div>
           </div>
         </div>
       </div>
@@ -793,7 +793,7 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
                   <tr key={i} className={row.hygieneStatus === 'red' ? 'row-red' : row.hygieneStatus === 'yellow' ? 'row-yellow' : ''}>
                     <td>
                       <span className={`badge ${row.hygieneStatus === 'red' ? 'badge-red' : row.hygieneStatus === 'yellow' ? 'badge-yellow' : 'badge-green'}`}>
-                        {row.hygieneStatus === 'red' ? 'ð´ Red' : row.hygieneStatus === 'yellow' ? 'ð¡ Dupe' : 'â Clean'}
+                        {row.hygieneStatus === 'red' ? '🔴 Red' : row.hygieneStatus === 'yellow' ? '🟡 Dupe' : '✅ Clean'}
                       </span>
                     </td>
                     <td><span className="badge badge-blue">{row.brand}</span></td>
@@ -801,8 +801,8 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
                     <td className="font-mono text-xs">{row.orderId}</td>
                     <td className="max-w-xs truncate text-xs">{row.selectProduct}</td>
                     <td className="max-w-xs truncate text-xs text-gray-500">{row.detailedVOC?.slice(0, 80)}</td>
-                    <td className="text-xs font-mono">{row.batchNumber || 'â'}</td>
-                    <td className="text-center">{[row.uploadImagesVideos, row.image1, row.image2].some(v => v?.includes('drive.google')) ? 'â' : 'â'}</td>
+                    <td className="text-xs font-mono">{row.batchNumber || '—'}</td>
+                    <td className="text-center">{[row.uploadImagesVideos, row.image1, row.image2].some(v => v?.includes('drive.google')) ? '✅' : '❌'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -823,7 +823,7 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
   )
 }
 
-// ââ BUCKETING VIEW ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── BUCKETING VIEW ────────────────────────────────────────────────────────
 function BucketingView({ allData, onRunBucketing, loading, accessToken }) {
   const [filterBrand, setFilterBrand] = useState('ALL')
 
@@ -838,7 +838,7 @@ function BucketingView({ allData, onRunBucketing, loading, accessToken }) {
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">ð§  VOC Bucketing</h2>
+          <h2 className="text-xl font-bold text-gray-900">🧠 VOC Bucketing</h2>
           <p className="text-sm text-gray-500 mt-1">
             Classify complaints into 7 buckets & 32 sub-buckets. Extract Product, Packaging, Flavour.
           </p>
@@ -848,7 +848,7 @@ function BucketingView({ allData, onRunBucketing, loading, accessToken }) {
           disabled={loading || !accessToken || unprocessed.length === 0}
           className="bg-purple-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
         >
-          {loading ? 'â³ Processingâ¦' : `â¶ Process ${unprocessed.length} Unprocessed Rows`}
+          {loading ? '⏳ Processing…' : `▶ Process ${unprocessed.length} Unprocessed Rows`}
         </button>
       </div>
 
@@ -873,7 +873,7 @@ function BucketingView({ allData, onRunBucketing, loading, accessToken }) {
         <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
           <option value="ALL">All Brands</option>
-          {BRANDS.map(b => <option key={b} value={b}>{b} â {BRAND_FULL[b]}</option>)}
+          {BRANDS.map(b => <option key={b} value={b}>{b} — {BRAND_FULL[b]}</option>)}
         </select>
       </div>
 
@@ -930,7 +930,7 @@ function BucketingView({ allData, onRunBucketing, loading, accessToken }) {
   )
 }
 
-// ââ REPORTS VIEW ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── REPORTS VIEW ──────────────────────────────────────────────────────────
 function ReportsView({
   allData, salesLookup, reportType, setReportType, reportBrand, setReportBrand,
   reportView, setReportView, selectedWeek, setSelectedWeek, selectedMonth, setSelectedMonth,
@@ -940,7 +940,7 @@ function ReportsView({
 
   const getDateRangeLabel = () => {
     if (reportType === 'weekly' && selectedWeek) {
-      return `Week ${selectedWeek.weekNum || '?'} (${formatDate(selectedWeek.startDate)} â ${formatDate(selectedWeek.endDate)})`
+      return `Week ${selectedWeek.weekNum || '?'} (${formatDate(selectedWeek.startDate)} – ${formatDate(selectedWeek.endDate)})`
     }
     if (reportType === 'monthly' && selectedMonth) {
       return `${selectedMonth.label}`
@@ -1055,11 +1055,11 @@ function ReportsView({
             <div className="flex gap-1">
               <button onClick={() => setReportView('product')}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${reportView === 'product' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                ð¦ Product Issues
+                📦 Product Issues
               </button>
               <button onClick={() => setReportView('delivery')}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${reportView === 'delivery' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                ð Delivery Issues
+                🚚 Delivery Issues
               </button>
             </div>
           </div>
@@ -1071,7 +1071,7 @@ function ReportsView({
         <div className="flex justify-between items-start">
           <div>
             <div className="text-blue-200 text-sm mb-1">
-              {reportView === 'delivery' ? 'ð Delivery Issue Report' : 'ð¦ Product Issue Report (Excl. Delivery)'}
+              {reportView === 'delivery' ? '🚚 Delivery Issue Report' : '📦 Product Issue Report (Excl. Delivery)'}
             </div>
             <h2 className="text-xl font-bold">{getDateRangeLabel()}</h2>
             <p className="text-blue-200 text-sm mt-1">
@@ -1121,7 +1121,7 @@ function ReportsView({
                 ? (bData.byBucket['Delivery Issue'] || 0)
                 : bData.accepted - (bData.byBucket['Delivery Issue'] || 0)
             })}
-            labels={BRANDS.map(b => `${b} â ${BRAND_FULL[b]}`)}
+            labels={BRANDS.map(b => `${b} — ${BRAND_FULL[b]}`)}
             colors={BRANDS.map(b => BRAND_COLORS[b])}
           />
         </div>
@@ -1168,17 +1168,17 @@ function BrandPerformanceTable({ allData, reportData, prevData, reportView }) {
                 <td>
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ background: BRAND_COLORS[brand] }} />
-                    <span className="font-medium">{brand} â {BRAND_FULL[brand]}</span>
+                    <span className="font-medium">{brand} — {BRAND_FULL[brand]}</span>
                   </div>
                 </td>
                 <td className="font-bold text-gray-900">{curr}</td>
-                <td className="text-gray-500">{prev !== null ? prev : 'â'}</td>
+                <td className="text-gray-500">{prev !== null ? prev : '—'}</td>
                 <td>
                   {change !== null ? (
                     <span className={parseFloat(change) > 0 ? 'change-up' : parseFloat(change) < 0 ? 'change-down' : 'text-gray-500'}>
-                      {parseFloat(change) > 0 ? 'â²' : 'â¼'} {Math.abs(parseFloat(change))}%
+                      {parseFloat(change) > 0 ? '▲' : '▼'} {Math.abs(parseFloat(change))}%
                     </span>
-                  ) : 'â'}
+                  ) : '—'}
                 </td>
               </tr>
             )
@@ -1186,14 +1186,14 @@ function BrandPerformanceTable({ allData, reportData, prevData, reportView }) {
           <tr className="font-bold bg-gray-50">
             <td>Total (All Brands)</td>
             <td>{getCount(reportData, reportView)}</td>
-            <td>{prevData ? getCount(prevData, reportView) : 'â'}</td>
+            <td>{prevData ? getCount(prevData, reportView) : '—'}</td>
             <td>
               {prevData && getCount(prevData, reportView) > 0 ? (
                 <span className={getCount(reportData, reportView) > getCount(prevData, reportView) ? 'change-up' : 'change-down'}>
-                  {getCount(reportData, reportView) > getCount(prevData, reportView) ? 'â²' : 'â¼'}{' '}
+                  {getCount(reportData, reportView) > getCount(prevData, reportView) ? '▲' : '▼'}{' '}
                   {Math.abs(((getCount(reportData, reportView) - getCount(prevData, reportView)) / getCount(prevData, reportView)) * 100).toFixed(1)}%
                 </span>
-              ) : 'â'}
+              ) : '—'}
             </td>
           </tr>
         </tbody>
@@ -1231,7 +1231,7 @@ function BucketBreakdown({ reportData, prevData, reportView }) {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="p-4 border-b border-gray-100">
         <h3 className="font-bold text-gray-900">Issue Category Analysis</h3>
-        <p className="text-xs text-gray-400 mt-0.5">Book-index style â buckets with sub-bucket breakdown</p>
+        <p className="text-xs text-gray-400 mt-0.5">Book-index style — buckets with sub-bucket breakdown</p>
       </div>
       <div className="p-5 space-y-5">
         {bucketsToShow.sort((a, b) => b[1] - a[1]).map(([bucket, count]) => {
@@ -1256,7 +1256,7 @@ function BucketBreakdown({ reportData, prevData, reportView }) {
                 </div>
                 {change !== null && (
                   <span className={parseFloat(change) > 0 ? 'change-up text-sm' : 'change-down text-sm'}>
-                    {parseFloat(change) > 0 ? 'â²' : 'â¼'} {Math.abs(parseFloat(change))}%
+                    {parseFloat(change) > 0 ? '▲' : '▼'} {Math.abs(parseFloat(change))}%
                     <span className="text-gray-400 font-normal ml-1">vs prev</span>
                   </span>
                 )}
@@ -1266,7 +1266,7 @@ function BucketBreakdown({ reportData, prevData, reportView }) {
                 <div className="space-y-1">
                   {subEntries.map(([sub, cnt]) => (
                     <div key={sub} className="subbucket-row">
-                      <span className="text-gray-600">â³ {sub}</span>
+                      <span className="text-gray-600">↳ {sub}</span>
                       <div className="flex items-center gap-3">
                         <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                           <div className="h-1.5 rounded-full" style={{ width: `${(cnt / count) * 100}%`, background: color }} />
@@ -1335,7 +1335,7 @@ function SKUPerformance({ reportData, prevData, reportView }) {
   )
 }
 
-// ââ PPM VIEW ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── PPM VIEW ──────────────────────────────────────────────────────────────
 function PPMView({ allData, salesLookup, selectedWeek, selectedMonth, availableWeeks, availableMonths, setSelectedWeek, setSelectedMonth }) {
   const [ppmPeriod, setPpmPeriod] = useState('weekly')
   const [ppmBrand, setPpmBrand] = useState('ALL')
@@ -1368,13 +1368,13 @@ function PPMView({ allData, salesLookup, selectedWeek, selectedMonth, availableW
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">ð PPM Analysis</h2>
-        <p className="text-sm text-gray-500 mt-1">Parts Per Million = (Complaints Ã· Units Sold) Ã 1,000,000</p>
+        <h2 className="text-xl font-bold text-gray-900">📈 PPM Analysis</h2>
+        <p className="text-sm text-gray-500 mt-1">Parts Per Million = (Complaints ÷ Units Sold) × 1,000,000</p>
       </div>
 
       {!salesLookup && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-          â ï¸ Load data first to build the sales lookup. PPM requires both complaint data and Live Sales Data.
+          ⚠️ Load data first to build the sales lookup. PPM requires both complaint data and Live Sales Data.
         </div>
       )}
 
@@ -1386,12 +1386,8 @@ function PPMView({ allData, salesLookup, selectedWeek, selectedMonth, availableW
               {['weekly', 'monthly'].map(t => (
                 <button key={t} onClick={() => setPpmPeriod(t)}
                   className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${ppmPeriod === t ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                  {t === 'weekly', ? 'Weekly  : 'Monthly'}
-              </button>
-                ))}
-            </div>
-          </div>
-          </button>
+                  {t === 'weekly' ? 'Weekly' : 'Monthly'}
+                </button>
               ))}
             </div>
           </div>
@@ -1450,12 +1446,12 @@ function PPMView({ allData, salesLookup, selectedWeek, selectedMonth, availableW
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex justify-between items-center">
             <div>
-              <h3 className="font-bold text-gray-900">PPM by Product â Ranked (High to Low)</h3>
+              <h3 className="font-bold text-gray-900">PPM by Product — Ranked (High to Low)</h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                <span className="ppm-critical">â </span> â¥10,000 Critical &nbsp;
-                <span className="ppm-high">â </span> 5,000â9,999 High &nbsp;
-                <span className="ppm-medium">â </span> 1,000â4,999 Medium &nbsp;
-                <span className="ppm-low">â </span> &lt;1,000 Low
+                <span className="ppm-critical">■</span> ≥10,000 Critical &nbsp;
+                <span className="ppm-high">■</span> 5,000–9,999 High &nbsp;
+                <span className="ppm-medium">■</span> 1,000–4,999 Medium &nbsp;
+                <span className="ppm-low">■</span> &lt;1,000 Low
               </p>
             </div>
           </div>
