@@ -772,7 +772,7 @@ function HygieneView({ allData, onRunHygiene, loading, accessToken }) {
             )}
           </div>
         ))}
-      </div>
+      </div>Auto-process new rows on load + 60s polling + full Reports rebuild
 
       {/* Filters */}
       <div className="flex gap-3">
